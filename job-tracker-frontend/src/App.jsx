@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import "./App.css";
 
-const API_URL = "http://localhost:8081/api/jobs";
+const API_URL = "https://smart-job-tracker-production-98a1.up.railway.app/api/jobs";
 
 function App() {
   const [jobs, setJobs] = useState([]);
