@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import "./App.css";
 
-const BASE_URL = "http://localhost:8081";
+const BASE_URL = "https://smart-job-tracker-production-8f8c.up.railway.app";
 const AUTH_URL = `${BASE_URL}/api/auth`;
 const JOBS_URL = `${BASE_URL}/api/jobs`;
 
