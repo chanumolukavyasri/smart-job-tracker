@@ -1,37 +1,56 @@
-
 package job_tracker_backend;
 
-import java.util.List;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/jobs")
-@CrossOrigin(origins = "*")
 public class JobApplicationController {
 
     private final JobApplicationRepository repository;
+    private final UserRepository userRepository;
 
-    public JobApplicationController(JobApplicationRepository repository) {
+    public JobApplicationController(
+            JobApplicationRepository repository,
+            UserRepository userRepository) {
         this.repository = repository;
+        this.userRepository = userRepository;
     }
 
     @GetMapping
-    public List<JobApplication> getAllJobs() {
-        return repository.findAll();
+    public List<JobApplication> getAllJobs(Authentication authentication) {
+        return repository.findAllByUser_EmailOrderByIdDesc(
+                authentication.getName());
     }
 
     @PostMapping
-    public JobApplication addJob(@RequestBody JobApplication job) {
-        return repository.save(job);
+    public ResponseEntity<?> addJob(
+            @RequestBody JobApplication job,
+            Authentication authentication) {
+
+        User user = userRepository.findByEmail(authentication.getName())
+                .orElseThrow();
+
+        job.setUser(user);
+
+        JobApplication savedJob = repository.save(job);
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(savedJob);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<JobApplication> updateJob(
+    public ResponseEntity<?> updateJob(
             @PathVariable Long id,
-            @RequestBody JobApplication updatedJob) {
+            @RequestBody JobApplication updatedJob,
+            Authentication authentication) {
 
-        return repository.findById(id)
+        return repository.findByIdAndUser_Email(
+                id, authentication.getName())
                 .map(job -> {
                     job.setCompany(updatedJob.getCompany());
                     job.setRole(updatedJob.getRole());
@@ -44,12 +63,16 @@ public class JobApplicationController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteJob(@PathVariable Long id) {
-        if (!repository.existsById(id)) {
-            return ResponseEntity.notFound().build();
-        }
+    public ResponseEntity<?> deleteJob(
+            @PathVariable Long id,
+            Authentication authentication) {
 
-        repository.deleteById(id);
-        return ResponseEntity.noContent().build();
+        return repository.findByIdAndUser_Email(
+                id, authentication.getName())
+                .map(job -> {
+                    repository.delete(job);
+                    return ResponseEntity.noContent().build();
+                })
+                .orElse(ResponseEntity.notFound().build());
     }
 }
